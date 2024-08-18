@@ -27,7 +27,7 @@ IIt seems like there are two services, HTTP and SSH, which are pretty common. Le
 
 Let's have a look at the site :
 
-['site first look'](site1.png)
+!['site first look'](site1.png)
 
 Nothing special at first glance. There is another page `How to participate`. That leads to `contact.php`.
 
@@ -235,25 +235,25 @@ ssh -L 8888:localhost:8080 amay@sea.htb
 
 And visit the site on our browser. I need to connect myself. Let's tried with the ssh crendentials :
 
-[conenction](./site-connect.png)
+![conenction](./site-connect.png)
 
 And now I can access the site :
 
-[root site](./site2.png)
+![root site](./site2.png)
 
 Well this a System Monitor page. The first thing I notice is the Analyze part with a file selection. LFI ?
 
 Let's investigate on burpsuite.
 
-[burpsuite-capture](burp1.png)
+![burpsuite-capture](burp1.png)
 
 Let's try something like this : `/root/root.txt`
 
-[burpsuite-lfi](burp2.png)
+![burpsuite-lfi](burp2.png)
 
 Hmmmm. After trying different approaches, why not trying to put an error ? `/root/root.txt;kk`
 
-[burpsuite-lfi-error](burp3.png)
+![burpsuite-lfi-error](burp3.png)
 
 And boom ! This it !
 
