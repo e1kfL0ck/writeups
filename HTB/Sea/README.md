@@ -37,9 +37,9 @@ I tried many things on this page but it was a waste of time. Let's get back to a
 ffuf -c -w /opt/seclists/Discovery/Web-Content/big.txt -u "http://$TARGET/FUZZ" -recursion -recursion-depth 4 -fc 302,401,403
 ```
 
-After searching for a while, I came across two interesting paths: `/themes/bike/version` and `/themes/bike/Readme.md`. With them I learn that the site is using the `WonderCMS` framework in it's version 3.2.0.
+After searching for a while, I came across two interesting paths: `/themes/bike/version` and `/themes/bike/Readme.md`. With them I learned that the site is using the `WonderCMS` framework in it's version 3.2.0.
 
-Let's dig for some exploits on [exploit-db.com](https://www.exploit-db.com/exploits/51805).
+Let's dig for an exploit on [exploit-db.com](https://www.exploit-db.com/exploits/51805).
 
 I found a pretty intereting one with `WonderCMS` version 4.3.2.
 
@@ -117,7 +117,7 @@ And starting the listenner :
 pwncat-cs :1234
 ```
 
-If you don't know [pwncat](https://pwncat.readthedocs.io/en/latest/) yet, you should definitely have a look. 
+If you don't know [pwncat](https://pwncat.readthedocs.io/en/latest/) yet, you should definitely have a look.
 
 And boom, I get in !
 
@@ -132,7 +132,7 @@ wncat-cs :1234
 www-data
 ```
 
-Now we need to find to way to connect ourselve as a user. I proceed to some search and found `/var/www/sea/data/database.js`.
+Now I need to find to way to connect myself as a user. I proceed to some search and found `/var/www/sea/data/database.js`.
 
 ```javascript
 {
@@ -233,7 +233,7 @@ After analysing the result there is nothing amazing. However, there is port `808
 ssh -L 8888:localhost:8080 amay@sea.htb
 ```
 
-And visit the site on our browser. I need to connect myself. Let's tried with the ssh crendentials :
+And visit the site on our local browser. I need to connect myself. Let's tried with the ssh crendentials :
 
 ![conenction](./site-connect.png)
 
