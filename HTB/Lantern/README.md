@@ -171,7 +171,7 @@ Let's use procmon and see what we can get out of this `sudo /usr/bin/procmon <PI
 
 We can open the database using : `sudo /usr/bin/procmon-f procmon.db`. There is a log of thing, but the one that seems the most important is the `nano` process with the `write` syscall.
 
-[image]
+![image](./procmon.png)
 
 Let's try to see what's being written. To do so, the easiest will be to export the base to our local machine and use `sqlite3` as there is none on the remote machine. Using scp : `scp -i id_rsa -p tomas@lantern.htb:/home/tomas/procmon.db ./`
 
@@ -250,7 +250,7 @@ sqlite> SELECT *, hex(arguments) FROM ebpf  WHERE syscall LIKE 'write' AND proce
 
 Indeed. Now let's dig further. When looking back at this image:
 
-![image]
+![image](./procmon.png)
 
 There is some write operation with a 0 resultcode. And the buffer seems empty. So let's get rid of these. And just to be sure, we can also sort by timestamp, to be sure to keep only what we need. The SQL request should look like this : `SELECT hex(arguments) FROM ebpf WHERE syscall LIKE 'write' AND processname LIKE 'nano' and resultcode > 0 ORDER BY timestamp ;`
 
@@ -272,9 +272,13 @@ We are missing some letters here and then but let's try with thid password :
 
 ![alt text](root.png)
 
-And here we are !P
+And here we are !
 
 ## Final Toughts
 
 There is a few issue that I need to resolve. For example why
 
+```
+55 -> curl
+20 -> wget
+```
