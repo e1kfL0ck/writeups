@@ -105,9 +105,9 @@ There's a login page :
 
 ![image](./login.png)
 
-But excpet this, nothing really interesting. Going back to 80.
+But except this, nothing really interesting. Going back to 80.
 
-There's a file upload but this is also a dead end. I was a bit stuck until I realize : `Server: Skipper Proxy`. Hmmm, let's have a look on the internet. And here, a nice little [exploit](https://www.exploit-db.com/exploits/51111). So let's try SSRF. I sued burp, and this [port list](https://raw.githubusercontent.com/cujanovic/SSRF-Testing/master/commonly-open-ports.txt), but this was a vey bad idea, way too long. You should defenetly use an other tool. Or use burp pro. And after, a few time, answer on `:5000` :
+There's a file upload but this is also a dead end. I was a bit stuck until I realize : `Server: Skipper Proxy`. Hmmm, let's have a look on the internet. Upon further research, I discovered an interesting [exploit](https://www.exploit-db.com/exploits/51111). So let's try SSRF. I used burp, and this [port list](https://raw.githubusercontent.com/cujanovic/SSRF-Testing/master/commonly-open-ports.txt), but this was a very bad idea, way too long. You should definitely use another tool. Or use burp pro. And after, a few time, answer on `:5000` :
 
 ![image](./SSRF.png)
 
@@ -115,7 +115,7 @@ And when looking the whole response :
 
 ![alt text](./framework.png)
 
-The site seems to use the Blazor Framework. This confirm what we found on port 3000. Let's fuze this :
+The site seems to use the Blazor Framework. This confirms what we found on port 3000. Let's fuzz this :
 
 ```bash
 ffuf -c -w /opt/seclists/Discovery/Web-Content/common.txt -u "http://$TARGET/FUZZ" -H "X-Skipper-Proxy:http://127.0.0.1:5000/"  -recursion  -fc 302 -fw 389
@@ -187,7 +187,7 @@ curl -H 'Host: lantern.htb' -H 'X-Skipper-Proxy: http://127.0.0.1:5000/' -H 'Use
 }#
 ```
 
-`InternaLantern.dll`. Let's download this and have a look with `ilspycmd`.
+`InternaLantern.dll`. Let's download this and have a look using `ILSpyCmd`.
 
 ```bash
 #!/bin/bash
@@ -215,7 +215,7 @@ echo 'U3lzdGVtIGFkbWluaXN0cmF0b3IsIEZpcnN0IGRheTogMjEvMS8yMDI0LCBJbml0aWFsIGNyZW
 System administrator, First day: 21/1/2024, Initial credentials admin:AJbFA_Q@925p9ap#22. Ask to change after first login!#
 ```
 
-Great ! Lets's go back to port 3000 and try this creds.
+Great ! Let's go back to port 3000 and try this creds.
 
 [image](./admin.png)
 
@@ -230,11 +230,11 @@ Now that I have access to the admin panel, I will try to gain access to the syst
 
 Let's try to create a revshell with .NET framework and then upload it.
 
-I don't now anything about C# so it's time to learn but don't expect very precise explanations.
+I wasn't familiar with C# at the beginning so it's time to learn but don't expect very precise explanations.
 
 First, let's find a revshell. I can use for example this [revshell](www.revshells.com).
 
-After several unsucessfull text, it forgot about a very important part : The Blazor Framework. This application is using the Blazor framework, therefore, our malicous dll will need to use this framework also.
+After several unsuccessfull text, it forgot about a very important part : The Blazor Framework. This application is using the Blazor framework, therefore, our malicious dll will need to use this framework also.
 
 After a lots of tests on dll uploading (and just a little bit of LLM), I finally came to an end and this one is working !
 
@@ -390,7 +390,7 @@ We can open the database using : `sudo /usr/bin/procmon-f procmon.db`. There is 
 
 ![image](./procmon.png)
 
-Let's try to see what's being written. To do so, the easiest will be to export the base to our local machine and use `sqlite3` as there is none on the remote machine. Using scp : `scp -i id_rsa -p tomas@lantern.htb:/home/tomas/procmon.db ./`
+Let's try to examine what's being written. To do so, the easiest will be to export the base to our local machine and use `sqlite3` as there is none on the remote machine. Using scp : `scp -i id_rsa -p tomas@lantern.htb:/home/tomas/procmon.db ./`
 
 Now we can investigate : `sqlite3 procmon.db` Let's first check the different tables we have.
 
@@ -422,7 +422,7 @@ CREATE TABLE ebpf (
     arguments BLOB);
 ```
 
-So we will be mostly interested with the ebpf table. Let's take a closer look :
+So we will be mostly interested with the eBPF table. Let's take a closer look :
 
 ```bash
 sqlite> SELECT * FROM ebpf LIMIT 15;
@@ -454,7 +454,7 @@ sqlite> SELECT * FROM ebpf  WHERE syscall LIKE 'write' AND processname LIKE 'nan
 425106|140343397558407$/usr/lib/x86_64-linux-gnu/libc.so.6!__write|nano|nano|6|18854003052688|write|19467|
 ```
 
-Why is there nothing in the argument ? Might be because it's hex and can't be rendered directly as utf-8. Let's try with this :
+Why is there nothing in the argument ? Might be because it's hex and can't be rendered directly as utf-8. Let's try using this :
 
 ```bash
 sqlite> SELECT *, hex(arguments) FROM ebpf  WHERE syscall LIKE 'write' AND processname LIKE 'nano' LIMIT 5;
@@ -481,17 +481,8 @@ Okay. It does not make any sens. But. After looking at it again, again and again
 
 `Q3dtwpBm | sudo ./backup.sh ech Q3Eddtdw3pMB | udo backup.sh [...]`
 
-We are missing some letters here and then but let's try with thid password :
+We are missing some letters here and then but let's try with this password :
 
 ![alt text](root.png)
 
 And here we are !
-
-## Final Toughts
-
-There is a few issue that I need to resolve. For example why the
-
-```
-55 -> curl
-20 -> wget
-```
