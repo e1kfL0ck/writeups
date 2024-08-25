@@ -204,9 +204,9 @@ curl -o InternaLantern.dll -H "Host: $HOST" -H "X-Skipper-Proxy: $PROXY" -H "Use
 ilspycmd InternaLantern.dll -o data
 ```
 
-And we get a 854 lines decompile Csharp, let's read all of this. And we finally found some base64 strings.
+And we get a 854 lines decompiled Csharp, let's read all of this. And, after a few time, I found some base64 strings.
 
-[image](./base64.png)
+![image](./base64.png)
 
 And reading them :
 
@@ -217,16 +217,16 @@ System administrator, First day: 21/1/2024, Initial credentials admin:AJbFA_Q@92
 
 Great ! Let's go back to port 3000 and try this creds.
 
-[image](./admin.png)
+![image](./admin.png)
 
 And let's go ! We are inside !
 
 ### Upload reverse shell
 
-Now that I have access to the admin panel, I will try to gain access to the system. Two intersting stuff.
+Now that I have access to the admin panel, I will try to gain access to the system. I imediatly found two intersting path.
 
-1 - I can trigger some dll in `/opt/components`.
-2 - I can upload files to `/var/www/sites/lantern.htb/static/images`.
+1. I can trigger some dll in `/opt/components`.
+2. I can upload files to `/var/www/sites/lantern.htb/static/images`.
 
 Let's try to create a revshell with .NET framework and then upload it.
 
@@ -234,7 +234,7 @@ I wasn't familiar with C# at the beginning so it's time to learn but don't expec
 
 First, let's find a revshell. I can use for example this [revshell](www.revshells.com).
 
-After several unsuccessfull text, it forgot about a very important part : The Blazor Framework. This application is using the Blazor framework, therefore, our malicious dll will need to use this framework also.
+After several unsuccessfull tests, it forgot about a very important part : The Blazor Framework. This application is using the Blazor framework, therefore, our malicious dll will need to use this framework also.
 
 After a lots of tests on dll uploading (and just a little bit of LLM), I finally came to an end and this one is working !
 
