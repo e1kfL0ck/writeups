@@ -43,6 +43,10 @@ Une fonction attire particulièrement notre regard `checkFlag()`. Mais impossibl
 
 On peut la retouver dans `Ressources>lib` compilée selon les besoins. Analysons la avec Ghidra.
 
+Premièrement, on observe les fonctions et l'on trouve immédiatement celle qui nous interesse.
+
+![functions](./symbol_tree.png)
+
 Après avoir localisé la fonction d'intérêt, on trouve ce bout de code :
 
 ```C
