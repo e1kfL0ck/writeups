@@ -1,5 +1,9 @@
 # Tuto
 
+```bash
+exegol start -cwd -fs --disable-shared-timezones CTF2
+```
+
 ## Discovery
 
 <details>
