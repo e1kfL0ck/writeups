@@ -175,9 +175,17 @@ git reset --hard HEAD
 
 </details>
 
-## Linpeas
+## Linux
 
-### Usage send and back
+### Send mails
+
+With the following command you can send emails to a server that is not password protected as any user you want.
+
+```bash
+swaks --to jobert@localhost --from axel@localhost --header "Subject: Exploit" --body "http://localhost:3000/axel/test" --server 127.0.0.1
+```
+
+### Linepas usage send and back
 
 ```bash
 # Host on two sparate terminal
